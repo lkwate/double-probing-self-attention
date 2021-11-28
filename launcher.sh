@@ -1,0 +1,1 @@
+python3 trainer.py roberta-base 6 4 logs
