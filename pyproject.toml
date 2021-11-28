@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "core"
+version = "0.1"
+description = "Double probing self-attention for textual entailment. Leverage the cross-attention for the semantic probing"
+authors = ["Loic Kwate Dassi"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+click = "^8.0.3"
+torch = "^1.10.0"
+black = "^21.11b1"
+transformers = "^4.12.5"
+datasets = "^1.16.1"
+pytorch-lightning = "^1.5.3"
+loguru = "^0.5.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
