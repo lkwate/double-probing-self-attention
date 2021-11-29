@@ -59,10 +59,8 @@ class DpsaModel(nn.Module):
         premise_hypothesis = self.dropout(premise_hypothesis)
         hypothesis_premise = self.dropout(hypothesis_premise)
 
-        premise_hypothesis_pooler, _ = self.reducer(premise_hypothesis)
-        premise_hypothesis_pooler = premise_hypothesis_pooler[:, -1, :]
-        hypothesis_premise_pooler, _ = self.reducer(hypothesis_premise)
-        hypothesis_premise_pooler = hypothesis_premise_pooler[:, -1, :]
+        premise_hypothesis_pooler = self.reducer(premise_hypothesis)[0][:, -1, :]
+        hypothesis_premise_pooler = self.reducer(hypothesis_premise)[0][:, -1, :]
         
         output = torch.cat(
             [premise_hypothesis_pooler, hypothesis_premise_pooler], dim=-1
