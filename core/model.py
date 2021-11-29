@@ -4,6 +4,7 @@ import torch.optim as optim
 from .utils import slice_transformers
 from transformers import AutoConfig
 import pytorch_lightning as pl
+from torch.nn.utils.rnn import pack_padded_sequence
 
 OPTMIZER_DIC = {"Adam": optim.Adam}
 
@@ -30,6 +31,14 @@ class DpsaModel(nn.Module):
         self.dropout = nn.Dropout(dropout_reducer)
         self.linear = nn.Linear(2 * config.hidden_size, num_class)
 
+    def _pack_mask_transformer_output(self, output, attention_mask):
+        zero_indices = (1 - attention_mask).nonzero(as_tuple=True)
+        lengths = attention_mask.sum(-1)
+        output[zero_indices] = 0
+        output = pack_padded_sequence(output, lengths=lengths, batch_first=True, enforce_sorted=False)
+        
+        return output
+    
     def forward(
         self,
         premise_input_ids,
@@ -58,9 +67,15 @@ class DpsaModel(nn.Module):
         
         premise_hypothesis = self.dropout(premise_hypothesis)
         hypothesis_premise = self.dropout(hypothesis_premise)
+        
+        # set to zero the features of the pad tokens in the premise_hypothesis
+        premise_hypothesis = self._pack_mask_transformer_output(premise_hypothesis, premise_attention_mask)
+       
+        # set to zero the features of the pad tokens in the premise_hypothesis
+        hypothesis_premise = self._pack_mask_transformer_output(hypothesis_premise, hypothesis_attention_mask)
 
-        premise_hypothesis_pooler = self.reducer(premise_hypothesis)[0][:, -1, :]
-        hypothesis_premise_pooler = self.reducer(hypothesis_premise)[0][:, -1, :]
+        premise_hypothesis_pooler = self.reducer(premise_hypothesis)[-1].squeeze(0)
+        hypothesis_premise_pooler = self.reducer(hypothesis_premise)[-1].squeeze(0)
         
         output = torch.cat(
             [premise_hypothesis_pooler, hypothesis_premise_pooler], dim=-1
