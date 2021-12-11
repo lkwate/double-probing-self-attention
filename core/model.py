@@ -33,7 +33,7 @@ class DpsaModel(nn.Module):
 
     def _pack_mask_transformer_output(self, output, attention_mask):
         zero_indices = (1 - attention_mask).nonzero(as_tuple=True)
-        lengths = attention_mask.sum(-1)
+        lengths = attention_mask.sum(-1).int()
         output[zero_indices] = 0
         output = pack_padded_sequence(output, lengths=lengths, batch_first=True, enforce_sorted=False)
         
