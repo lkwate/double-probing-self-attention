@@ -159,7 +159,7 @@ class DpsaLightningModule(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         loss, accuracy = self._metric_forward(batch)
-        output = {"val_loss": loss, "val_accucary": accuracy}
+        output = {"val_loss": loss, "val_accuracy": accuracy}
         self.log_dict(output)
         return output
 
