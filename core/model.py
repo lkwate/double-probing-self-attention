@@ -13,13 +13,12 @@ class DpsaModel(nn.Module):
     def __init__(
         self,
         model_name: str,
-        pivot: int,
         dropout_reducer: float,
         num_layer_reducer: int,
         num_class: int,
     ):
         super(DpsaModel, self).__init__()
-        self.base_model, self.cross_model = slice_transformers(model_name, pivot)
+        self.base_model, self.cross_model = slice_transformers(model_name)
         config = AutoConfig.from_pretrained(model_name)
         self.reducer = nn.GRU(
             config.hidden_size,
@@ -102,7 +101,6 @@ class DpsaLightningModule(pl.LightningModule):
     def __init__(
         self,
         model_name,
-        pivot,
         dropout_reducer,
         num_layer_reducer,
         num_class,
@@ -113,7 +111,7 @@ class DpsaLightningModule(pl.LightningModule):
     ):
         super(DpsaLightningModule, self).__init__()
         self.model = DpsaModel(
-            model_name, pivot, dropout_reducer, num_layer_reducer, num_class
+            model_name, dropout_reducer, num_layer_reducer, num_class
         )
         self.learning_rate = learning_rate
         self.lr_factor = lr_factor
