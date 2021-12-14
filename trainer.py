@@ -12,7 +12,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 @click.command()
 @click.argument("model_name", type=str)
-@click.argument("pivot", type=int)
 @click.argument("batch_size", type=int)
 @click.argument("log_path", type=click.Path())
 @click.option("--dropout_reducer", type=float, default=0.1)
@@ -34,7 +33,6 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 @click.option("--action", type=str, default="train")
 def main(
     model_name,
-    pivot,
     batch_size,
     log_path,
     dropout_reducer,
@@ -62,7 +60,6 @@ def main(
     logger.info("Lightning module creation...")
     model_config = {
         "model_name": model_name,
-        "pivot": pivot,
         "dropout_reducer": dropout_reducer,
         "num_layer_reducer": num_layer_reducer,
         "num_class": num_class,
