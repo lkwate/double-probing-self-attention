@@ -102,7 +102,10 @@ def main(
 
     trainer_config["callbacks"] = [early_stopping_callback, model_checkpoint_callback]
     if overfit_batches:
-        trainer = pl.Trainer(overfit_batches=10)
+        config = {"overfit_batches": 10}
+        if torch.cuda.is_available():
+            config["gpus"] = -1
+        trainer = pl.Trainer(**config)
     else:
         trainer = pl.Trainer(**trainer_config)
         
