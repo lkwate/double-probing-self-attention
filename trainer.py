@@ -108,7 +108,7 @@ def main(
         trainer = pl.Trainer(**config)
     else:
         trainer = pl.Trainer(**trainer_config)
-        
+
     if train:
         logger.info("Training...")
         trainer.fit(model=model, datamodule=data_module)
