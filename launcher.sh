@@ -1,1 +1,1 @@
-python3 trainer.py roberta-base 4 logs
+python3 trainer.py roberta-base 4 logs --train 

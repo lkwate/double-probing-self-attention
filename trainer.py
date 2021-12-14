@@ -30,7 +30,8 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 @click.option("--save_top_k", type=int, default=5)
 @click.option("--num_workers", type=int, default=4)
 @click.option("--save_weights_only", is_flag=True)
-@click.option("--action", type=str, default="train")
+@click.option("--train", is_flag=True)
+@click.option("--overfit_batches", is_flag=True)
 def main(
     model_name,
     batch_size,
@@ -51,7 +52,8 @@ def main(
     save_top_k,
     num_workers,
     save_weights_only,
-    action,
+    train,
+    overfit_batches,
 ):
     pl.seed_everything(seed)
     logger.info("Lightning Data module creation...")
@@ -99,9 +101,12 @@ def main(
     )
 
     trainer_config["callbacks"] = [early_stopping_callback, model_checkpoint_callback]
-    trainer = pl.Trainer(**trainer_config)
-
-    if action == "train":
+    if overfit_batches:
+        trainer = pl.Trainer(overfit_batches=10)
+    else:
+        trainer = pl.Trainer(**trainer_config)
+        
+    if train:
         logger.info("Training...")
         trainer.fit(model=model, datamodule=data_module)
 
