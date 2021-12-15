@@ -20,13 +20,13 @@ class DpsaModel(nn.Module):
         super(DpsaModel, self).__init__()
         self.base_model, self.cross_model = slice_transformers(model_name)
         config = AutoConfig.from_pretrained(model_name)
-        # self.reducer = nn.GRU(
-        #     config.hidden_size,
-        #     config.hidden_size,
-        #     num_layer_reducer,
-        #     dropout=dropout_reducer,
-        #     batch_first=True,
-        # )
+        self.reducer = nn.GRU(
+            config.hidden_size,
+            config.hidden_size,
+            num_layer_reducer,
+            dropout=dropout_reducer,
+            batch_first=True,
+        )
         self.dropout = nn.Dropout(dropout_reducer)
         self.linear = nn.Linear(2 * config.hidden_size, num_class)
 
@@ -60,7 +60,7 @@ class DpsaModel(nn.Module):
             encoder_attention_mask=self.base_model.invert_attention_mask(
                 hypothesis_attention_mask
             ),
-        ).last_hidden_state[:, 0, :]
+        ).last_hidden_state
 
         hypothesis_premise = self.cross_model(
             hidden_states=hypothesis_hidden_state,
@@ -68,26 +68,26 @@ class DpsaModel(nn.Module):
             encoder_attention_mask=self.base_model.invert_attention_mask(
                 premise_attention_mask
             ),
-        ).last_hidden_state[:, 0, :]
+        ).last_hidden_state
 
         premise_hypothesis = self.dropout(premise_hypothesis)
         hypothesis_premise = self.dropout(hypothesis_premise)
 
         # set to zero the features of the pad tokens in the premise_hypothesis
-        # premise_hypothesis = self._pack_mask_transformer_output(
-        #     premise_hypothesis, premise_attention_mask
-        # )
+        premise_hypothesis = self._pack_mask_transformer_output(
+            premise_hypothesis, premise_attention_mask
+        )
 
-        # # set to zero the features of the pad tokens in the premise_hypothesis
-        # hypothesis_premise = self._pack_mask_transformer_output(
-        #     hypothesis_premise, hypothesis_attention_mask
-        # )
+        # set to zero the features of the pad tokens in the premise_hypothesis
+        hypothesis_premise = self._pack_mask_transformer_output(
+            hypothesis_premise, hypothesis_attention_mask
+        )
 
-        # premise_hypothesis_pooler = self.reducer(premise_hypothesis)[-1].squeeze(0)
-        # hypothesis_premise_pooler = self.reducer(hypothesis_premise)[-1].squeeze(0)
+        premise_hypothesis_pooler = self.reducer(premise_hypothesis)[-1].squeeze(0)
+        hypothesis_premise_pooler = self.reducer(hypothesis_premise)[-1].squeeze(0)
 
         output = torch.cat(
-            [premise_hypothesis, hypothesis_premise], dim=-1
+            [premise_hypothesis_pooler, hypothesis_premise_pooler], dim=-1
         )
         output = self.linear(output)
 
