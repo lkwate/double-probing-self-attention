@@ -14,6 +14,9 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 @click.argument("model_name", type=str)
 @click.argument("batch_size", type=int)
 @click.argument("log_path", type=click.Path())
+@click.argument("train_src", type=click.Path(exists=True))
+@click.argument("validation_src", type=click.Path(exists=True))
+@click.argument("test_src", type=click.Path(exists=True))
 @click.option("--dropout_reducer", type=float, default=0.1)
 @click.option("--num_layer_reducer", type=int, default=1)
 @click.option("--num_class", type=int, default=3)
@@ -36,6 +39,9 @@ def main(
     model_name,
     batch_size,
     log_path,
+    train_src,
+    validation_src,
+    test_src,
     dropout_reducer,
     num_layer_reducer,
     num_class,
@@ -57,7 +63,7 @@ def main(
 ):
     pl.seed_everything(seed)
     logger.info("Lightning Data module creation...")
-    data_module = MNLILightningDataModule(model_name, batch_size, num_workers)
+    data_module = MNLILightningDataModule(model_name, batch_size, num_workers, train_src, validation_src, test_src)
 
     logger.info("Lightning module creation...")
     model_config = {
