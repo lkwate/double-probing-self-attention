@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from .utils import slice_transformers
-from transformers import AutoConfig, AutoModel
+from transformers import AutoConfig
 import pytorch_lightning as pl
 from torch.nn.utils.rnn import pack_padded_sequence
 
@@ -18,9 +18,27 @@ class DpsaModel(nn.Module):
         num_class: int,
     ):
         super(DpsaModel, self).__init__()
-        self.main = AutoModel.from_pretrained(model_name)
-        self.dropout = nn.Dropout(0.1)
-        self.pooler = nn.Linear(768, 3)
+        self.base_model, self.cross_model = slice_transformers(model_name)
+        config = AutoConfig.from_pretrained(model_name)
+        self.reducer = nn.GRU(
+            config.hidden_size,
+            config.hidden_size,
+            num_layer_reducer,
+            dropout=dropout_reducer,
+            batch_first=True,
+        )
+        self.dropout = nn.Dropout(dropout_reducer)
+        self.linear = nn.Linear(2 * config.hidden_size, num_class)
+
+    def _pack_mask_transformer_output(self, output, attention_mask):
+        zero_indices = (1 - attention_mask).nonzero(as_tuple=True)
+        lengths = attention_mask.sum(-1).cpu()
+        output[zero_indices] = 0
+        output = pack_padded_sequence(
+            output, lengths=lengths, batch_first=True, enforce_sorted=False
+        )
+
+        return output
 
     def forward(
         self,
@@ -29,15 +47,49 @@ class DpsaModel(nn.Module):
         hypothesis_input_ids,
         hypothesis_attention_mask,
     ):
-        input_ids = torch.cat([premise_input_ids, hypothesis_input_ids], dim=-1)
-        attention_mask = torch.cat(
-            [premise_attention_mask, hypothesis_attention_mask], dim=-1
+        premise_hidden_state = self.base_model(
+            input_ids=premise_input_ids, attention_mask=premise_attention_mask
+        ).last_hidden_state
+        hypothesis_hidden_state = self.base_model(
+            input_ids=hypothesis_input_ids, attention_mask=hypothesis_attention_mask
+        ).last_hidden_state
+
+        premise_hypothesis = self.cross_model(
+            hidden_states=premise_hidden_state,
+            encoder_hidden_states=hypothesis_hidden_state,
+            encoder_attention_mask=self.base_model.invert_attention_mask(
+                hypothesis_attention_mask
+            ),
+        ).last_hidden_state
+
+        hypothesis_premise = self.cross_model(
+            hidden_states=hypothesis_hidden_state,
+            encoder_hidden_states=premise_hidden_state,
+            encoder_attention_mask=self.base_model.invert_attention_mask(
+                premise_attention_mask
+            ),
+        ).last_hidden_state
+
+        premise_hypothesis = self.dropout(premise_hypothesis)
+        hypothesis_premise = self.dropout(hypothesis_premise)
+
+        # set to zero the features of the pad tokens in the premise_hypothesis
+        premise_hypothesis = self._pack_mask_transformer_output(
+            premise_hypothesis, premise_attention_mask
         )
-        output = self.main(
-            input_ids=input_ids, attention_mask=attention_mask
-        ).pooler_output
-        output = self.dropout(output)
-        output = self.pooler(output)
+
+        # set to zero the features of the pad tokens in the premise_hypothesis
+        hypothesis_premise = self._pack_mask_transformer_output(
+            hypothesis_premise, hypothesis_attention_mask
+        )
+
+        premise_hypothesis_pooler = self.reducer(premise_hypothesis)[-1].squeeze(0)
+        hypothesis_premise_pooler = self.reducer(hypothesis_premise)[-1].squeeze(0)
+
+        output = torch.cat(
+            [premise_hypothesis_pooler, hypothesis_premise_pooler], dim=-1
+        )
+        output = self.linear(output)
 
         return output
 
