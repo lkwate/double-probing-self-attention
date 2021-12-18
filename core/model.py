@@ -22,7 +22,6 @@ class DpsaModel(nn.Module):
         self.dropout = nn.Dropout(0.1)
         self.pooler = nn.Linear(768, 3)
 
-
     def forward(
         self,
         premise_input_ids,
@@ -31,11 +30,15 @@ class DpsaModel(nn.Module):
         hypothesis_attention_mask,
     ):
         input_ids = torch.cat([premise_input_ids, hypothesis_input_ids], dim=-1)
-        attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
-        output = self.main(input_ids=input_ids, attention_mask=attention_mask).pooler_output
+        attention_mask = torch.cat(
+            [premise_attention_mask, hypothesis_attention_mask], dim=-1
+        )
+        output = self.main(
+            input_ids=input_ids, attention_mask=attention_mask
+        ).pooler_output
         output = self.dropout(output)
         output = self.pooler(output)
-        
+
         return output
 
 
