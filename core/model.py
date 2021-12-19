@@ -23,16 +23,11 @@ class DpsaModel(nn.Module):
         self.dropout = nn.Dropout(dropout_reducer)
         self.linear = nn.Linear(config.hidden_size, num_class)
 
-
     def forward(
         self,
-        premise_input_ids,
-        premise_attention_mask,
-        hypothesis_input_ids,
-        hypothesis_attention_mask,
+        input_ids,
+        attention_mask
     ):
-        input_ids = torch.cat([premise_input_ids, hypothesis_input_ids], dim=-1)
-        attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
         output = self.base_model(input_ids, attention_mask=attention_mask).pooler_output
         pooler_output = self.dropout(output)
         # premise_hidden_state = self.base_model(
@@ -64,7 +59,7 @@ class DpsaModel(nn.Module):
         # full_attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
         # hidden_states = torch.cat([premise_hypothesis, hypothesis_premise], dim=-2)
         # pooler_output = self.base_model(inputs_embeds=hidden_states, attention_mask=full_attention_mask).pooler_output
-        
+
         output = self.linear(pooler_output)
 
         return output
@@ -110,23 +105,17 @@ class DpsaLightningModule(pl.LightningModule):
 
     def _metric_forward(self, batch):
         (
-            premise_input_ids,
-            premise_attention_mask,
-            hypothesis_input_ids,
-            hypothesis_attention_mask,
+            input_ids,
+            attention_mask,
             label,
         ) = (
-            batch["premise_input_ids"],
-            batch["premise_attention_mask"],
-            batch["hypothesis_input_ids"],
-            batch["hypothesis_attention_mask"],
+            batch["input_ids"],
+            batch["attention_mask"],
             batch["label"],
         )
         logits = self.model(
-            premise_input_ids,
-            premise_attention_mask,
-            hypothesis_input_ids,
-            hypothesis_attention_mask,
+            input_ids,
+            attention_mask,
         )
         label = label.long()
         loss = self.criterion(logits, label)

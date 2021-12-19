@@ -32,19 +32,15 @@ class MNLIDataset(Dataset):
         item = self.data.iloc[idx]
         sent1, sent2, label = (item["sentence1"], item["sentence2"], item["label"])
         label = float(self.label_factory[label])
-        
-        premise_inputs = self.tokenizer(sent1)
-        hypothesis_inputs = self.tokenizer(sent2)
-        
+
+        inputs = self.tokenizer(sent1, sent2)
         output = {
-            "premise_input_ids": premise_inputs["input_ids"],
-            "premise_attention_mask": premise_inputs["attention_mask"],
-            "hypothesis_input_ids": hypothesis_inputs["input_ids"],
-            "hypothesis_attention_mask": hypothesis_inputs["attention_mask"],
+            **inputs,
             "label": label,
         }
 
         return output
+
 
 @dataclass
 class DataCollator:
@@ -55,42 +51,16 @@ class DataCollator:
     return_tensors: str = "pt"
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
-        premise_features = [
-            {
-                key[len("premise_") :]: value
-                for key, value in feature.items()
-                if key.startswith("premise_")
-            }
-            for feature in features
-        ]
-        hypothesis_features = [
-            {
-                key[len("hypothesis_") :]: value
-                for key, value in feature.items()
-                if key.startswith("hypothesis_")
-            }
-            for feature in features
-        ]
-        labels = torch.LongTensor([feat["label"] for feat in features])
-
-        premise_batch = self.tokenizer.pad(
-            premise_features,
-            padding=self.padding,
-            max_length=self.max_length,
-            pad_to_multiple_of=self.pad_to_multiple_of,
-            return_tensors=self.return_tensors,
-        )
-
-        hypothesis_batch = self.tokenizer.pad(
-            hypothesis_features,
+        labels = torch.LongTensor([feat.pop("label") for feat in features])
+        batch = self.tokenizer.pad(
+            features,
             padding=self.padding,
             max_length=self.max_length,
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors,
         )
         batch = {
-            **{"premise_" + key: value for key, value in premise_batch.items()},
-            **{"hypothesis_" + key: value for key, value in hypothesis_batch.items()},
+            **batch,
             "label": labels,
         }
 
@@ -98,7 +68,9 @@ class DataCollator:
 
 
 class MNLILightningDataModule(pl.LightningDataModule):
-    def __init__(self, model_name, batch_size, num_workers, train_src, validation_src, test_src):
+    def __init__(
+        self, model_name, batch_size, num_workers, train_src, validation_src, test_src
+    ):
         super().__init__()
         self.model_name = model_name
         self.batch_size = batch_size
@@ -109,14 +81,13 @@ class MNLILightningDataModule(pl.LightningDataModule):
         self.validation_src = validation_src
         self.test_src = test_src
 
-
-
     def prepare_data(self) -> None:
         logger.info("Dataset downloading...")
         self.train = MNLIDataset(self.tokenizer, self.train_src, self.batch_size)
-        self.validation = MNLIDataset(self.tokenizer, self.validation_src, self.batch_size)
+        self.validation = MNLIDataset(
+            self.tokenizer, self.validation_src, self.batch_size
+        )
         self.test = MNLIDataset(self.tokenizer, self.test_src, self.batch_size)
-        
 
     def train_dataloader(self) -> TRAIN_DATALOADERS:
         return DataLoader(
