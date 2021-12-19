@@ -31,37 +31,41 @@ class DpsaModel(nn.Module):
         hypothesis_input_ids,
         hypothesis_attention_mask,
     ):
-        premise_hidden_state = self.base_model(
-            input_ids=premise_input_ids, attention_mask=premise_attention_mask
-        ).last_hidden_state
-        hypothesis_hidden_state = self.base_model(
-            input_ids=hypothesis_input_ids, attention_mask=hypothesis_attention_mask
-        ).last_hidden_state
+        input_ids = torch.cat([premise_input_ids, hypothesis_input_ids], dim=-1)
+        attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
+        output = self.base_model(input_ids, attention_mask=attention_mask).pooler_output
+        output = self.dropout(output)
+        # premise_hidden_state = self.base_model(
+        #     input_ids=premise_input_ids, attention_mask=premise_attention_mask
+        # ).last_hidden_state
+        # hypothesis_hidden_state = self.base_model(
+        #     input_ids=hypothesis_input_ids, attention_mask=hypothesis_attention_mask
+        # ).last_hidden_state
 
-        premise_hypothesis = self.cross_model(
-            hidden_states=premise_hidden_state,
-            encoder_hidden_states=hypothesis_hidden_state,
-            encoder_attention_mask=self.base_model.invert_attention_mask(
-                hypothesis_attention_mask
-            ),
-        ).last_hidden_state
+        # premise_hypothesis = self.cross_model(
+        #     hidden_states=premise_hidden_state,
+        #     encoder_hidden_states=hypothesis_hidden_state,
+        #     encoder_attention_mask=self.base_model.invert_attention_mask(
+        #         hypothesis_attention_mask
+        #     ),
+        # ).last_hidden_state
 
-        hypothesis_premise = self.cross_model(
-            hidden_states=hypothesis_hidden_state,
-            encoder_hidden_states=premise_hidden_state,
-            encoder_attention_mask=self.base_model.invert_attention_mask(
-                premise_attention_mask
-            ),
-        ).last_hidden_state
+        # hypothesis_premise = self.cross_model(
+        #     hidden_states=hypothesis_hidden_state,
+        #     encoder_hidden_states=premise_hidden_state,
+        #     encoder_attention_mask=self.base_model.invert_attention_mask(
+        #         premise_attention_mask
+        #     ),
+        # ).last_hidden_state
 
-        premise_hypothesis = self.dropout(premise_hypothesis)
-        hypothesis_premise = self.dropout(hypothesis_premise)
+        # premise_hypothesis = self.dropout(premise_hypothesis)
+        # hypothesis_premise = self.dropout(hypothesis_premise)
 
-        full_attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
-        hidden_states = torch.cat([premise_hypothesis, hypothesis_premise], dim=-2)
-        pooler_output = self.base_model(inputs_embeds=hidden_states, attention_mask=full_attention_mask).pooler_output
+        # full_attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
+        # hidden_states = torch.cat([premise_hypothesis, hypothesis_premise], dim=-2)
+        # pooler_output = self.base_model(inputs_embeds=hidden_states, attention_mask=full_attention_mask).pooler_output
         
-        output = self.linear(pooler_output)
+        # output = self.linear(pooler_output)
 
         return output
 
