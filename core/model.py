@@ -21,7 +21,7 @@ class DpsaModel(nn.Module):
         self.base_model, self.cross_model = slice_transformers(model_name)
         config = AutoConfig.from_pretrained(model_name)
         self.dropout = nn.Dropout(dropout_reducer)
-        self.linear = nn.Linear(config.hidden_size, num_class)
+        self.linear = nn.Linear(2 * config.hidden_size, num_class)
 
     def _pack_mask_transformer_output(self, output, attention_mask):
         zero_indices = (1 - attention_mask).nonzero(as_tuple=True)
