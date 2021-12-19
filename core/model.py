@@ -53,7 +53,7 @@ class DpsaModel(nn.Module):
             encoder_attention_mask=self.base_model.invert_attention_mask(
                 hypothesis_attention_mask
             ),
-        ).last_hidden_state
+        ).last_hidden_state[:, 0, :]
 
         hypothesis_premise = self.cross_model(
             hidden_states=hypothesis_hidden_state,
@@ -61,12 +61,10 @@ class DpsaModel(nn.Module):
             encoder_attention_mask=self.base_model.invert_attention_mask(
                 premise_attention_mask
             ),
-        ).last_hidden_state
+        ).last_hidden_state[:, 0, :]
         
-        inputs_embeds = torch.cat([premise_hypothesis, hypothesis_premise], dim=-2)
-        attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
+        pooler_output = torch.cat([self.dropout(premise_hypothesis), self.dropout(hypothesis_premise)], dim=-1)
         
-        pooler_output = self.base_model(inputs_embeds=inputs_embeds, attention_mask=attention_mask).pooler_output
         output = self.linear(pooler_output)
         
         return output
