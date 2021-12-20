@@ -1,7 +1,6 @@
 from typing import Union, Optional, List, Dict, Any
 import datasets
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import TRAIN_DATALOADERS, EVAL_DATALOADERS
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, PreTrainedTokenizerBase
 from loguru import logger
@@ -121,7 +120,7 @@ class MNLILightningDataModule(pl.LightningDataModule):
         self.validation = self._data_processing(self.validation, "Validation")
         self.test = self._data_processing(self.test, "Testing")
 
-    def train_dataloader(self) -> TRAIN_DATALOADERS:
+    def train_dataloader(self):
         return DataLoader(
             self.train,
             batch_size=self.batch_size,
@@ -130,7 +129,7 @@ class MNLILightningDataModule(pl.LightningDataModule):
             collate_fn=self.collate_fn,
         )
 
-    def val_dataloader(self) -> EVAL_DATALOADERS:
+    def val_dataloader(self):
         return DataLoader(
             self.validation,
             batch_size=self.batch_size,
@@ -138,7 +137,7 @@ class MNLILightningDataModule(pl.LightningDataModule):
             collate_fn=self.collate_fn,
         )
 
-    def test_dataloader(self) -> EVAL_DATALOADERS:
+    def test_dataloader(self):
         return DataLoader(
             self.test,
             batch_size=self.batch_size,
