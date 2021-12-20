@@ -21,7 +21,7 @@ class DpsaModel(nn.Module):
         self.base_model, self.cross_model = slice_transformers(model_name)
         config = AutoConfig.from_pretrained(model_name)
         self.dropout = nn.Dropout(dropout_reducer)
-        self.linear = nn.Linear(2 * config.hidden_size, num_class)
+        self.linear = nn.Linear(config.hidden_size, num_class)
 
     def _pack_mask_transformer_output(self, output, attention_mask):
         zero_indices = (1 - attention_mask).nonzero(as_tuple=True)
@@ -53,7 +53,7 @@ class DpsaModel(nn.Module):
             encoder_attention_mask=self.base_model.invert_attention_mask(
                 hypothesis_attention_mask
             ),
-        ).last_hidden_state[:, 0, :]
+        ).last_hidden_state
 
         hypothesis_premise = self.cross_model(
             hidden_states=hypothesis_hidden_state,
@@ -61,9 +61,11 @@ class DpsaModel(nn.Module):
             encoder_attention_mask=self.base_model.invert_attention_mask(
                 premise_attention_mask
             ),
-        ).last_hidden_state[:, 0, :]
+        ).last_hidden_state
         
-        pooler_output = torch.cat([self.dropout(premise_hypothesis), self.dropout(hypothesis_premise)], dim=-1)
+        inputs_embeds = torch.cat([premise_hypothesis, hypothesis_premise], dim=-2)
+        attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
+        pooler_output = self.base_model(inputs_embeds=inputs_embeds, attention_mask=attention_mask).pooler_output
         
         output = self.linear(pooler_output)
         
