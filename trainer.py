@@ -32,6 +32,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 @click.option("--save_weights_only", is_flag=True)
 @click.option("--train", is_flag=True)
 @click.option("--overfit_batches", is_flag=True)
+@click.option("--tpu", is_flag=True)
 def main(
     model_name,
     batch_size,
@@ -54,6 +55,7 @@ def main(
     save_weights_only,
     train,
     overfit_batches,
+    tpu
 ):
     pl.seed_everything(seed)
     logger.info("Lightning Data module creation...")
@@ -85,7 +87,9 @@ def main(
         "val_check_interval": val_check_interval,
         "accumulate_grad_batches": accumulate_grad_batches,
     }
-    if torch.cuda.is_available():
+    if tpu:
+        trainer_config["tpu_cores"] = 8
+    elif torch.cuda.is_available():
         trainer_config["gpus"] = -1
 
     early_stopping_callback = EarlyStopping(
@@ -103,7 +107,9 @@ def main(
     trainer_config["callbacks"] = [early_stopping_callback, model_checkpoint_callback]
     if overfit_batches:
         config = {"overfit_batches": 10}
-        if torch.cuda.is_available():
+        if tpu:
+            trainer_config["tpu_cores"] = 8
+        elif torch.cuda.is_available():
             config["gpus"] = -1
         trainer = pl.Trainer(**config)
     else:
