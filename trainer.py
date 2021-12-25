@@ -55,7 +55,7 @@ def main(
     save_weights_only,
     train,
     overfit_batches,
-    tpu
+    tpu,
 ):
     pl.seed_everything(seed)
     logger.info("Lightning Data module creation...")
@@ -108,7 +108,7 @@ def main(
     if overfit_batches:
         config = {"overfit_batches": 10}
         if tpu:
-            trainer_config["tpu_cores"] = 8
+            config["tpu_cores"] = 8
         elif torch.cuda.is_available():
             config["gpus"] = -1
         trainer = pl.Trainer(**config)
