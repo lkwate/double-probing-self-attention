@@ -12,7 +12,7 @@ import torch
 @dataclass
 class DataCollator:
     tokenizer: PreTrainedTokenizerBase
-    padding: Union[str, PaddingStrategy] = True
+    padding: Union[str, PaddingStrategy] = "max_length"
     max_length: Optional[int] = None
     pad_to_multiple_of: Optional[int] = None
     return_tensors: str = "pt"
@@ -26,6 +26,7 @@ class DataCollator:
             }
             for feature in features
         ]
+        max_length = max(feat["input_ids"].shape[-1] for feat in premise_features)
         hypothesis_features = [
             {
                 key[len("hypothesis_") :]: value
@@ -34,12 +35,15 @@ class DataCollator:
             }
             for feature in features
         ]
+        max_length = max(
+            max_length, max(feat["input_ids"].shape[-1] for feat in hypothesis_features)
+        )
         labels = torch.LongTensor([feat["label"].item() for feat in features])
 
         premise_batch = self.tokenizer.pad(
             premise_features,
             padding=self.padding,
-            max_length=self.max_length,
+            max_length=max_length,
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors,
         )
@@ -47,7 +51,7 @@ class DataCollator:
         hypothesis_batch = self.tokenizer.pad(
             hypothesis_features,
             padding=self.padding,
-            max_length=self.max_length,
+            max_length=max_length,
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors,
         )
