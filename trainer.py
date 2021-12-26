@@ -33,6 +33,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 @click.option("--train", is_flag=True)
 @click.option("--overfit_batches", is_flag=True)
 @click.option("--tpu", is_flag=True)
+@click.option("--pivot", type=int, default=6)
 def main(
     model_name,
     batch_size,
@@ -56,6 +57,7 @@ def main(
     train,
     overfit_batches,
     tpu,
+    pivot,
 ):
     pl.seed_everything(seed)
     logger.info("Lightning Data module creation...")
@@ -71,6 +73,7 @@ def main(
         "lr_factor": lr_factor,
         "lr_schedule_patience": lr_schedule_patience,
         "optimizer_name": optimizer_name,
+        "pivot": pivot,
     }
     if checkpoint_path is not None:
         logger.info(f"Initialize the model from checkpoint ...{checkpoint_path[-50:]}")

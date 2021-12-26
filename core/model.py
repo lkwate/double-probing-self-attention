@@ -16,9 +16,10 @@ class DpsaModel(nn.Module):
         dropout_reducer: float,
         num_layer_reducer: int,
         num_class: int,
+        pivot,
     ):
         super(DpsaModel, self).__init__()
-        self.base_model, self.cross_model = slice_transformers(model_name)
+        self.base_model, self.cross_model = slice_transformers(model_name, pivot)
         config = AutoConfig.from_pretrained(model_name)
         self.dropout = nn.Dropout(dropout_reducer)
         self.linear = nn.Linear(config.hidden_size, num_class)
@@ -74,10 +75,11 @@ class DpsaLightningModule(pl.LightningModule):
         lr_factor,
         lr_schedule_patience,
         optimizer_name,
+        pivot,
     ):
         super(DpsaLightningModule, self).__init__()
         self.model = DpsaModel(
-            model_name, dropout_reducer, num_layer_reducer, num_class
+            model_name, dropout_reducer, num_layer_reducer, num_class, pivot
         )
         self.learning_rate = learning_rate
         self.lr_factor = lr_factor
