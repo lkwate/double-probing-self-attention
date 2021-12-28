@@ -22,7 +22,8 @@ class DpsaModel(nn.Module):
         self.base_model, self.cross_model = slice_transformers(model_name, pivot)
         config = AutoConfig.from_pretrained(model_name)
         self.dropout = nn.Dropout(dropout_reducer)
-        self.linear = nn.Linear(2 * config.hidden_size, num_class)
+        self.pooler = nn.Linear(2 * config.hidden_size, num_class)
+        self.activation = nn.Tanh()
 
     def _pack_mask_transformer_output(self, output, attention_mask):
         zero_indices = (1 - attention_mask).nonzero(as_tuple=True)
@@ -90,8 +91,8 @@ class DpsaModel(nn.Module):
         # ).last_hidden_state[:, 0, :]
         
         pooler_output = torch.cat([premise_hypothesis, hypothesis_premise], dim=-1)
-        pooler_output = self.dropout(pooler_output)
-        output = self.linear(pooler_output)
+        pooler_output = self.activation(pooler_output)
+        output = self.pooler(pooler_output)
 
         return output
 
