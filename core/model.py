@@ -48,11 +48,27 @@ class DpsaModel(nn.Module):
             input_ids=hypothesis_input_ids, attention_mask=hypothesis_attention_mask
         ).last_hidden_state
 
+        batch_dim = premise_hidden_state.shape[0]
+        inputs_embeds = torch.stack(
+            [premise_hidden_state, hypothesis_hidden_state], dim=1
+        )
+        attention_mask = torch.stack(
+            [premise_attention_mask, hypothesis_attention_mask], dim=1
+        )
+        selection_indices = torch.randint(0, 2, (batch_dim,))
+        batch_indices = torch.arange(batch_dim)
+
+        inputs_embeds, encoder_hidden_states = (
+            inputs_embeds[batch_indices, selection_indices],
+            inputs_embeds[batch_indices, 1 - selection_indices],
+        )
+        attention_mask = attention_mask[batch_indices, 1 - selection_indices]
+
         pooler_output = self.cross_model(
-            hidden_states=hypothesis_hidden_state,
-            encoder_hidden_states=premise_hidden_state,
+            hidden_states=inputs_embeds,
+            encoder_hidden_states=encoder_hidden_states,
             encoder_attention_mask=self.base_model.invert_attention_mask(
-                premise_attention_mask
+                attention_mask
             ),
         ).last_hidden_state[:, 0, :]
 
