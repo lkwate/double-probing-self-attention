@@ -59,4 +59,4 @@ def slice_transformers(model_name: str):
     # cross_model.layer = nn.ModuleList(
     #     [CrossBertLayer(layer) for layer in base_model.encoder.layer]
     # )
-    return base_model, None #cross_model
+    return base_model, None  # cross_model

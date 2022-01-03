@@ -35,14 +35,12 @@ class DpsaModel(nn.Module):
 
     def forward(
         self,
-        premise_input_ids,
-        premise_attention_mask,
-        hypothesis_input_ids,
-        hypothesis_attention_mask,
+        input_ids,
+        attention_mask,
     ):
-        input_ids = torch.cat([premise_input_ids, hypothesis_input_ids], dim=-1)
-        attention_mask = torch.cat([premise_attention_mask, hypothesis_attention_mask], dim=-1)
-        pooler_output = self.base_model(input_ids, attention_mask).pooler_output
+        pooler_output = self.base_model(
+            input_ids, attention_mask=attention_mask
+        ).pooler_output
         output = self.linear(pooler_output)
 
         return output
@@ -87,25 +85,12 @@ class DpsaLightningModule(pl.LightningModule):
         return output
 
     def _metric_forward(self, batch):
-        (
-            premise_input_ids,
-            premise_attention_mask,
-            hypothesis_input_ids,
-            hypothesis_attention_mask,
-            label,
-        ) = (
-            batch["premise_input_ids"],
-            batch["premise_attention_mask"],
-            batch["hypothesis_input_ids"],
-            batch["hypothesis_attention_mask"],
+        (input_ids, attention_mask, label,) = (
+            batch["input_ids"],
+            batch["attention_mask"],
             batch["label"],
         )
-        logits = self.model(
-            premise_input_ids,
-            premise_attention_mask,
-            hypothesis_input_ids,
-            hypothesis_attention_mask,
-        )
+        logits = self.model(input_ids, attention_mask)
         label = label.long()
         loss = self.criterion(logits, label)
         prediction = torch.argmax(logits, dim=-1)

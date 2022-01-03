@@ -18,46 +18,20 @@ class DataCollator:
     return_tensors: str = "pt"
 
     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
-        premise_features = [
-            {
-                key[len("premise_") :]: value
-                for key, value in feature.items()
-                if key.startswith("premise_")
-            }
-            for feature in features
-        ]
-        max_length = max(feat["input_ids"].shape[-1] for feat in premise_features)
-        hypothesis_features = [
-            {
-                key[len("hypothesis_") :]: value
-                for key, value in feature.items()
-                if key.startswith("hypothesis_")
-            }
-            for feature in features
-        ]
-        max_length = max(
-            max_length, max(feat["input_ids"].shape[-1] for feat in hypothesis_features)
-        )
+
         labels = torch.LongTensor([feat["label"].item() for feat in features])
-
-        premise_batch = self.tokenizer.pad(
-            premise_features,
-            padding=self.padding,
-            max_length=max_length,
-            pad_to_multiple_of=self.pad_to_multiple_of,
-            return_tensors=self.return_tensors,
-        )
-
-        hypothesis_batch = self.tokenizer.pad(
-            hypothesis_features,
+        for feat in features:
+            feat.pop("label")
+        max_length = max(feat["input_ids"].shape[-1] for feat in features)
+        batch = self.tokenizer.pad(
+            features,
             padding=self.padding,
             max_length=max_length,
             pad_to_multiple_of=self.pad_to_multiple_of,
             return_tensors=self.return_tensors,
         )
         batch = {
-            **{"premise_" + key: value for key, value in premise_batch.items()},
-            **{"hypothesis_" + key: value for key, value in hypothesis_batch.items()},
+            **{key: value for key, value in batch.items()},
             "label": labels,
         }
 
@@ -80,14 +54,11 @@ class MNLILightningDataModule(pl.LightningDataModule):
             item["hypothesis"],
             item["label"],
         )
-        premise_inputs = self.tokenizer(premise)
-        hypothesis_inputs = self.tokenizer(hypothesis)
+        inputs = self.tokenizer(premise, hypothesis)
 
         output = {
-            "premise_input_ids": premise_inputs["input_ids"],
-            "premise_attention_mask": premise_inputs["attention_mask"],
-            "hypothesis_input_ids": hypothesis_inputs["input_ids"],
-            "hypothesis_attention_mask": hypothesis_inputs["attention_mask"],
+            "input_ids": inputs["input_ids"],
+            "attention_mask": inputs["attention_mask"],
             "label": label,
         }
 
@@ -112,10 +83,8 @@ class MNLILightningDataModule(pl.LightningDataModule):
         )
 
         self.columns = [
-            "premise_input_ids",
-            "premise_attention_mask",
-            "hypothesis_input_ids",
-            "hypothesis_attention_mask",
+            "input_ids",
+            "attention_mask",
             "label",
         ]
 
