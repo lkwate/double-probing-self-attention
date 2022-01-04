@@ -2,7 +2,7 @@ from typing import Union, Optional, List, Dict, Any
 import datasets
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, PreTrainedTokenizerBase
+from transformers import RobertaTokenizer, PreTrainedTokenizerBase
 from loguru import logger
 from dataclasses import dataclass
 from transformers.file_utils import PaddingStrategy
@@ -70,7 +70,7 @@ class MNLILightningDataModule(pl.LightningDataModule):
         self.model_name = model_name
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+        self.tokenizer = RobertaTokenizer.from_pretrained(self.model_name)
         self.collate_fn = DataCollator(self.tokenizer)
         self.filter_fn = lambda item: item["label"] != -1
 
