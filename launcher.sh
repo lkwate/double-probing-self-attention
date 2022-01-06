@@ -1,1 +1,1 @@
-python3 trainer.py roberta-base 4 logs --train 
+python3 trainer.py lkwate/roberta-base-mnli 4 logs --train 

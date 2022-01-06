@@ -40,12 +40,13 @@ class DpsaModel(nn.Module):
         hypothesis_input_ids,
         hypothesis_attention_mask,
     ):
-        premise_hidden_state = self.base_model(
-            input_ids=premise_input_ids, attention_mask=premise_attention_mask
-        ).last_hidden_state
-        hypothesis_hidden_state = self.base_model(
-            input_ids=hypothesis_input_ids, attention_mask=hypothesis_attention_mask
-        ).last_hidden_state
+        with torch.no_grad():
+            premise_hidden_state = self.base_model(
+                input_ids=premise_input_ids, attention_mask=premise_attention_mask
+            ).last_hidden_state
+            hypothesis_hidden_state = self.base_model(
+                input_ids=hypothesis_input_ids, attention_mask=hypothesis_attention_mask
+            ).last_hidden_state
 
         premise_hypothesis = self.cross_model(
             hidden_states=premise_hidden_state,

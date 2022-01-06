@@ -23,7 +23,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 @click.option("--optimizer_name", type=str, default="Adam")
 @click.option("--patience_early_stopping", type=float, default=5)
 @click.option("--accumulate_grad_batches", type=int, default=1)
-@click.option("--val_check_interval", type=float, default=0.20)
+@click.option("--val_check_interval", type=float, default=0.5)
 @click.option("--seed", type=int, default=2021)
 @click.option("--max_epochs", type=int, default=5)
 @click.option("--checkpoint_path", type=click.Path(exists=True))
