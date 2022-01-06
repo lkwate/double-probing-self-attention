@@ -53,11 +53,11 @@ class CrossBertLayer(nn.Module):
         return layer_output
 
 
-def slice_transformers(model_name: str):
+def slice_transformers(model_name: str, pivot: int):
     base_model = AutoModel.from_pretrained(model_name, output_hidden_states=True).eval()
     cross_model = BertEncoder(base_model.config)
     cross_model.load_state_dict(base_model.encoder.state_dict())
     cross_model.layer = nn.ModuleList(
-         [CrossBertLayer(layer) for layer in cross_model.layer]
+        [CrossBertLayer(layer) for layer in cross_model.layer[-pivot:]]
     )
     return base_model, cross_model

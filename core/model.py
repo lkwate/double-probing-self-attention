@@ -16,9 +16,10 @@ class DpsaModel(nn.Module):
         dropout_reducer: float,
         num_layer_reducer: int,
         num_class: int,
+        pivot: int,
     ):
         super(DpsaModel, self).__init__()
-        self.base_model, self.cross_model = slice_transformers(model_name)
+        self.base_model, self.cross_model = slice_transformers(model_name, pivot)
         config = AutoConfig.from_pretrained(model_name)
         self.dropout = nn.Dropout(dropout_reducer)
         self.linear = nn.Linear(2 * config.hidden_size, num_class)
@@ -64,7 +65,7 @@ class DpsaModel(nn.Module):
             ),
         ).last_hidden_state[:, 0, :]
 
-        pooler_output = torch.cat([premise_hypothesis, hypothesis_premise], dim =-1)
+        pooler_output = torch.cat([premise_hypothesis, hypothesis_premise], dim=-1)
         pooler_output = self.dropout(pooler_output)
         output = self.linear(pooler_output)
 
@@ -81,6 +82,7 @@ class DpsaLightningModule(pl.LightningModule):
         dropout_reducer,
         num_layer_reducer,
         num_class,
+        pivot,
         learning_rate,
         lr_factor,
         lr_schedule_patience,
@@ -88,7 +90,7 @@ class DpsaLightningModule(pl.LightningModule):
     ):
         super(DpsaLightningModule, self).__init__()
         self.model = DpsaModel(
-            model_name, dropout_reducer, num_layer_reducer, num_class
+            model_name, dropout_reducer, num_layer_reducer, num_class, pivot
         )
         self.learning_rate = learning_rate
         self.lr_factor = lr_factor
