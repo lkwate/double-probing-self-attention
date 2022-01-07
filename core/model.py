@@ -6,7 +6,6 @@ from transformers import AutoConfig
 import pytorch_lightning as pl
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch_optimizer import Lamb
-import numpy as np
 from collections import defaultdict
 
 OPTMIZER_DIC = {"Adam": optim.Adam, "Lamb": Lamb}
@@ -85,7 +84,7 @@ class DpsaLightningModule(pl.LightningModule):
     def reduce_metrics(self):
         output = {}
         for metric in self.metrics:
-            output[metric] = float(np.mean(self.metrics[metric]))
+            output[metric] = torch.Tensor(self.metrics[metric]).float().mean()
         return output
     
     def configure_optimizers(self):
