@@ -120,9 +120,9 @@ class DpsaLightningModule(pl.LightningModule):
         output = {"loss": loss, "train_accuracy": accuracy}
         self.load_metrics(output)
         if (self.global_step + 1) % self.log_every_n_steps == 0:
-            output = self.reduce_metrics()
+            output_log = self.reduce_metrics()
             self.metrics = defaultdict(list)
-            self.log_dict(output)
+            self.log_dict(output_log)
         return output
 
     def validation_step(self, batch, batch_idx):
