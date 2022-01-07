@@ -6,6 +6,8 @@ from transformers import AutoConfig
 import pytorch_lightning as pl
 from torch.nn.utils.rnn import pack_padded_sequence
 from torch_optimizer import Lamb
+import numpy as np
+from collections import defaultdict
 
 OPTMIZER_DIC = {"Adam": optim.Adam, "Lamb": Lamb}
 
@@ -61,6 +63,8 @@ class DpsaLightningModule(pl.LightningModule):
         lr_factor,
         lr_schedule_patience,
         optimizer_name,
+        accumulate_grad_batches,
+        log_every_n_steps,
     ):
         super(DpsaLightningModule, self).__init__()
         self.model = DpsaModel(
@@ -70,7 +74,20 @@ class DpsaLightningModule(pl.LightningModule):
         self.lr_factor = lr_factor
         self.lr_schedule_patience = lr_schedule_patience
         self.optimizer_name = optimizer_name
-
+        self.accumulate_grad_batches = accumulate_grad_batches
+        self.log_every_n_steps = log_every_n_steps
+        self.metrics = defaultdict(list)
+        
+    def load_metrics(self, inputs):
+        for metric, value in inputs.items():
+            self.metrics[metric].append(value.item())
+            
+    def reduce_metrics(self):
+        output = {}
+        for metric in self.metrics:
+            output[metric] = float(np.mean(self.metrics[metric]))
+        return output
+    
     def configure_optimizers(self):
         optimizer = OPTMIZER_DIC.get(self.optimizer_name, optim.Adam)(
             self.model.parameters(), lr=self.learning_rate
@@ -102,7 +119,11 @@ class DpsaLightningModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         loss, accuracy = self._metric_forward(batch)
         output = {"loss": loss, "train_accuracy": accuracy}
-        self.log_dict(output)
+        self.load_metrics(output)
+        if (self.global_step + 1) % self.log_every_n_steps == 0:
+            output = self.reduce_metrics()
+            self.metrics = defaultdict(list)
+            self.log_dict(output)
         return output
 
     def validation_step(self, batch, batch_idx):
