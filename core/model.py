@@ -5,8 +5,9 @@ from .utils import slice_transformers
 from transformers import AutoConfig
 import pytorch_lightning as pl
 from torch.nn.utils.rnn import pack_padded_sequence
+from torch_optimizer import Lamb
 
-OPTMIZER_DIC = {"Adam": optim.Adam}
+OPTMIZER_DIC = {"Adam": optim.Adam, "Lamb": Lamb}
 
 
 class DpsaModel(nn.Module):
